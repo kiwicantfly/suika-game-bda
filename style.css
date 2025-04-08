@@ -28,6 +28,8 @@ body {
     max-width: 640px;
     margin: 0 auto;
     height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 #game-canvas {
@@ -101,36 +103,43 @@ body {
 }
 
 #game-status {
-    position: absolute;
+    /*position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    top: 0;*/
+    width: 100vw;
     height: 64px;
     background-color: var(--col-bg-lighter);
     display: flex;
+    gap: 30px;
 }
 
 .game-status-item {
     display: flex;
     line-height: 1;
     align-items: center;
-    margin-right: 32px;
 }
 
 .game-status-label {
     color: #666;
-    font-size: 16px;
-    margin-left: 24px;
+    font-size: min(4vw, 16px);
+    margin-left: 8px;
     margin-right: 8px;
 }
 
 #game-highscore-value, #game-score {
     color: #333;
     font-weight: 700;
-    font-size: 24px;
+    font-size: min(5vw, 24px);
 }
 
 #game-next-fruit {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    aspect-ratio: 1;
+}
+
+.space-container {
+    flex-grow: 1;
+    background-color: #ff0000;
+    width: 100%;
 }
