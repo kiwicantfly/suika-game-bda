@@ -8,6 +8,28 @@ function mulberry32(a) {
 	}
 }
 
+// Ajoutez cette fonction pour contraindre la position X dans les limites du jeu
+function constrainX(x) {
+    // Limiter la valeur x entre le bord gauche et le bord droit
+    // En tenant compte du rayon du fruit pour éviter qu'il ne dépasse
+    const currentSize = Game.fruitSizes[Game.currentFruitSize];
+    const radius = currentSize.radius;
+    return Math.max(radius, Math.min(Game.width - radius, x));
+}
+
+// Ajoutez au début du script ou juste avant Game.initGame()
+// Variable pour stocker la dernière position connue de la souris
+document.mousemoveX = 0;
+document.mousemoveY = 0;
+
+// Écouteurs d'événements pour suivre la position de la souris partout
+document.addEventListener('mousemove', function(e) {
+    document.mousemoveX = e.clientX;
+    document.mousemoveY = e.clientY;
+});
+
+
+
 const rand = mulberry32(Date.now());
 
 const {
@@ -142,79 +164,98 @@ const Game = {
 		Events.on(mouseConstraint, 'mousedown', menuMouseDown);
 	},
 
-	startGame: function () {
-		Game.sounds.click.play();
+	// Modifiez la fonction startGame pour utiliser les événements document plutôt que mouseConstraint
+startGame: function () {
+    Game.sounds.click.play();
 
-		Composite.remove(engine.world, menuStatics);
-		Composite.add(engine.world, gameStatics);
+    Composite.remove(engine.world, menuStatics);
+    Composite.add(engine.world, gameStatics);
 
-		Game.calculateScore();
-		Game.elements.endTitle.innerText = 'Game Over!';
-		Game.elements.ui.style.display = 'block';
-		Game.elements.end.style.display = 'none';
-		Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, 0, { isStatic: true });
-		Composite.add(engine.world, Game.elements.previewBall);
+    Game.calculateScore();
+    Game.elements.endTitle.innerText = 'Game Over!';
+    Game.elements.ui.style.display = 'block';
+    Game.elements.end.style.display = 'none';
+    Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, 0, { isStatic: true });
+    Composite.add(engine.world, Game.elements.previewBall);
 
-		setTimeout(() => {
-			Game.stateIndex = GameStates.READY;
-		}, 250);
+    setTimeout(() => {
+        Game.stateIndex = GameStates.READY;
+    }, 250);
 
-		Events.on(mouseConstraint, 'mouseup', function (e) {
-			Game.addFruit(e.mouse.position.x);
-		});
+    // Remplacez les événements mouseConstraint par des événements document
+    document.addEventListener('click', function(e) {
+        if (Game.stateIndex !== GameStates.READY) return;
+        
+        // Calculer la position relative au canvas
+        const rect = render.canvas.getBoundingClientRect();
+        const scaleX = render.canvas.width / rect.width;
+        const actualX = (e.clientX - rect.left) * scaleX;
+        
+        // Appliquer la contrainte aux bords
+        const constrainedX = constrainX(actualX);
+        Game.addFruit(constrainedX);
+    });
 
-		Events.on(mouseConstraint, 'mousemove', function (e) {
-			if (Game.stateIndex !== GameStates.READY) return;
-			if (Game.elements.previewBall === null) return;
+    document.addEventListener('mousemove', function(e) {
+        if (Game.stateIndex !== GameStates.READY) return;
+        if (Game.elements.previewBall === null) return;
 
-			Game.elements.previewBall.position.x = e.mouse.position.x;
-		});
+        // Calculer la position relative au canvas
+        const rect = render.canvas.getBoundingClientRect();
+        const scaleX = render.canvas.width / rect.width;
+        const actualX = (e.clientX - rect.left) * scaleX;
+        
+        // Appliquer la contrainte aux bords
+        const constrainedX = constrainX(actualX);
+        Game.elements.previewBall.position.x = constrainedX;
+    });
 
-		Events.on(engine, 'collisionStart', function (e) {
-			for (let i = 0; i < e.pairs.length; i++) {
-				const { bodyA, bodyB } = e.pairs[i];
+    // Conservez les événements de collision existants
+    Events.on(engine, 'collisionStart', function (e) {
+        for (let i = 0; i < e.pairs.length; i++) {
+            const { bodyA, bodyB } = e.pairs[i];
 
-				// Skip if collision is wall
-				if (bodyA.isStatic || bodyB.isStatic) continue;
+            // Skip if collision is wall
+            if (bodyA.isStatic || bodyB.isStatic) continue;
 
-				const aY = bodyA.position.y + bodyA.circleRadius;
-				const bY = bodyB.position.y + bodyB.circleRadius;
+            const aY = bodyA.position.y + bodyA.circleRadius;
+            const bY = bodyB.position.y + bodyB.circleRadius;
 
-				// Uh oh, too high!
-				if (aY < loseHeight || bY < loseHeight) {
-					Game.loseGame();
-					return;
-				}
+            // Uh oh, too high!
+            if (aY < loseHeight || bY < loseHeight) {
+                Game.loseGame();
+                return;
+            }
 
-				// Skip different sizes
-				if (bodyA.sizeIndex !== bodyB.sizeIndex) continue;
+            // Skip different sizes
+            if (bodyA.sizeIndex !== bodyB.sizeIndex) continue;
 
-				// Skip if already popped
-				if (bodyA.popped || bodyB.popped) continue;
+            // Skip if already popped
+            if (bodyA.popped || bodyB.popped) continue;
 
-				let newSize = bodyA.sizeIndex + 1;
+            let newSize = bodyA.sizeIndex + 1;
 
-				// Go back to smallest size
-				if (bodyA.circleRadius >= Game.fruitSizes[Game.fruitSizes.length - 1].radius) {
-					newSize = 0;
-				}
+            // Go back to smallest size
+            if (bodyA.circleRadius >= Game.fruitSizes[Game.fruitSizes.length - 1].radius) {
+                newSize = 0;
+            }
 
-				Game.fruitsMerged[bodyA.sizeIndex] += 1;
+            Game.fruitsMerged[bodyA.sizeIndex] += 1;
 
-				// Therefore, circles are same size, so merge them.
-				const midPosX = (bodyA.position.x + bodyB.position.x) / 2;
-				const midPosY = (bodyA.position.y + bodyB.position.y) / 2;
+            // Therefore, circles are same size, so merge them.
+            const midPosX = (bodyA.position.x + bodyB.position.x) / 2;
+            const midPosY = (bodyA.position.y + bodyB.position.y) / 2;
 
-				bodyA.popped = true;
-				bodyB.popped = true;
+            bodyA.popped = true;
+            bodyB.popped = true;
 
-				Game.sounds[`pop${bodyA.sizeIndex}`].play();
-				Composite.remove(engine.world, [bodyA, bodyB]);
-				Composite.add(engine.world, Game.generateFruitBody(midPosX, midPosY, newSize));
-				Game.addPop(midPosX, midPosY, bodyA.circleRadius);
-				Game.calculateScore();
-			}
-		});
+            Game.sounds[`pop${bodyA.sizeIndex}`].play();
+            Composite.remove(engine.world, [bodyA, bodyB]);
+            Composite.add(engine.world, Game.generateFruitBody(midPosX, midPosY, newSize));
+            Game.addPop(midPosX, midPosY, bodyA.circleRadius);
+            Game.calculateScore();
+        }
+    });
 	},
 
 	addPop: function (x, y, r) {
@@ -268,19 +309,26 @@ const Game = {
 
 	addFruit: function (x) {
 		if (Game.stateIndex !== GameStates.READY) return;
-
+	
 		Game.sounds.click.play();
-
+	
 		Game.stateIndex = GameStates.DROP;
 		const latestFruit = Game.generateFruitBody(x, previewBallHeight, Game.currentFruitSize);
 		Composite.add(engine.world, latestFruit);
-
+	
 		Game.currentFruitSize = Game.nextFruitSize;
 		Game.setNextFruitSize();
 		Game.calculateScore();
-
+	
 		Composite.remove(engine.world, Game.elements.previewBall);
-		Game.elements.previewBall = Game.generateFruitBody(render.mouse.position.x, previewBallHeight, Game.currentFruitSize, {
+		
+		// Récupération de la position actuelle de la souris relative au canvas
+		const rect = render.canvas.getBoundingClientRect();
+		const scaleX = render.canvas.width / rect.width;
+		const actualX = (document.mousemoveX || 0 - rect.left) * scaleX;
+		const constrainedX = constrainX(actualX);
+		
+		Game.elements.previewBall = Game.generateFruitBody(constrainedX, previewBallHeight, Game.currentFruitSize, {
 			isStatic: true,
 			collisionFilter: { mask: 0x0040 }
 		});
@@ -291,6 +339,16 @@ const Game = {
 				Game.stateIndex = GameStates.READY;
 			}
 		}, 500);
+	},
+
+	setNextFruitSize: function () {
+		Game.nextFruitSize = Math.floor(rand() * 5);
+		Game.elements.nextFruitImg.src = `./assets/img/circle${Game.nextFruitSize}.png`;
+		
+		// S'assurer que currentFruitSize est défini lors du premier appel
+		if (Game.currentFruitSize === undefined) {
+			Game.currentFruitSize = Math.floor(rand() * 5);
+		}
 	}
 }
 
