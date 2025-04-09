@@ -5,7 +5,7 @@
     --col-bg-light: #FFD0C7;
     --col-bg-lighter: #E69DB8;
     --col-primary: #FF5300;
-    --col-primary-dark: #FF2700;
+    --col-primary-dark: #F7374F;
     --col-primary-light: #FF8800;
     --col-shadow: rgba(0, 0, 0, 0.25);
     --col-white: #fff;
@@ -140,6 +140,6 @@ body {
 
 .space-container {
     flex-grow: 1;
-    background-color: var(--col-bg-light);
+    background-color: var(--col-primary-dark);
     width: 100%;
 }
