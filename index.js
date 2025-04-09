@@ -8,6 +8,27 @@ function mulberry32(a) {
 	}
 }
 
+// Contraindre la position X dans les limites du jeu
+function constrainX(x) {
+    // Limiter la valeur x entre le bord gauche et le bord droit en tenant compte du rayon du fruit pour éviter qu'il ne dépasse
+    const currentSize = Game.fruitSizes[Game.currentFruitSize];
+    const radius = currentSize.radius;
+    return Math.max(radius, Math.min(Game.width - radius, x));
+}
+
+// Fonction de conversion des coordonnées de l'écran vers les coordonnées du canvas
+function screenToCanvasCoords(clientX, clientY) {
+    const rect = render.canvas.getBoundingClientRect();
+    const scaleX = render.canvas.width / rect.width;
+    const scaleY = render.canvas.height / rect.height;
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+
+
 const rand = mulberry32(Date.now());
 
 const {
@@ -122,24 +143,51 @@ const Game = {
 
 	initGame: function () {
 		Render.run(render);
-		Runner.run(runner, engine);
+    Runner.run(runner, engine);
 
-		Composite.add(engine.world, menuStatics);
+    Composite.add(engine.world, menuStatics);
 
-		Game.loadHighscore();
-		Game.elements.ui.style.display = 'none';
-		Game.fruitsMerged = Array.apply(null, Array(Game.fruitSizes.length)).map(() => 0);
+    Game.loadHighscore();
+    Game.elements.ui.style.display = 'none';
+    Game.fruitsMerged = Array.apply(null, Array(Game.fruitSizes.length)).map(() => 0);
 
-		const menuMouseDown = function () {
-			if (mouseConstraint.body === null || mouseConstraint.body?.label !== 'btn-start') {
-				return;
-			}
+    const handleStartGame = function (e) {
+        // Vérifier si le clic/tap était sur le bouton de démarrage
+        const btnStart = menuStatics.find(body => body.label === 'btn-start');
+        if (!btnStart) return;
+        
+        const rect = render.canvas.getBoundingClientRect();
+        const scaleX = render.canvas.width / rect.width;
+        const scaleY = render.canvas.height / rect.height;
+        
+        let clientX, clientY;
+        if (e.type === 'touchend' && e.changedTouches) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+        
+        // Vérifier si le clic est dans les limites du bouton
+        const btnBounds = btnStart.bounds;
+        if (x > btnBounds.min.x && x < btnBounds.max.x && 
+            y > btnBounds.min.y && y < btnBounds.max.y) {
+            
+            // Supprimer les écouteurs d'événements
+            document.removeEventListener('mousedown', handleStartGame);
+            document.removeEventListener('touchend', handleStartGame);
+            
+            Game.startGame();
+        }
+    };
 
-			Events.off(mouseConstraint, 'mousedown', menuMouseDown);
-			Game.startGame();
-		}
-
-		Events.on(mouseConstraint, 'mousedown', menuMouseDown);
+    // Écouteurs pour la souris et les événements tactiles
+    document.addEventListener('mousedown', handleStartGame);
+    document.addEventListener('touchend', handleStartGame);
 	},
 
 	startGame: function () {
@@ -152,24 +200,70 @@ const Game = {
 		Game.elements.endTitle.innerText = 'Game Over!';
 		Game.elements.ui.style.display = 'block';
 		Game.elements.end.style.display = 'none';
-		Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, 0, { isStatic: true });
+		Game.setNextFruitSize(); // Initialiser le prochain fruit
+		Game.currentFruitSize = Math.floor(rand() * 5); // Initialiser le fruit actuel
+		Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, Game.currentFruitSize, { isStatic: true });
 		Composite.add(engine.world, Game.elements.previewBall);
 
 		setTimeout(() => {
 			Game.stateIndex = GameStates.READY;
 		}, 250);
 
-		Events.on(mouseConstraint, 'mouseup', function (e) {
-			Game.addFruit(e.mouse.position.x);
-		});
+		// Fonction pour gérer le clic/tap
+		function handlePointerDown(clientX, clientY) {
+			if (Game.stateIndex !== GameStates.READY) return;
+			
+			const coords = screenToCanvasCoords(clientX, clientY);
+			const constrainedX = constrainX(coords.x);
+			Game.addFruit(constrainedX);
+		}
 
-		Events.on(mouseConstraint, 'mousemove', function (e) {
+		// Fonction pour gérer le mouvement du pointeur
+		function handlePointerMove(clientX, clientY) {
 			if (Game.stateIndex !== GameStates.READY) return;
 			if (Game.elements.previewBall === null) return;
 
-			Game.elements.previewBall.position.x = e.mouse.position.x;
+			document.pointerX = clientX;
+			document.pointerY = clientY;
+			
+			const coords = screenToCanvasCoords(clientX, clientY);
+			const constrainedX = constrainX(coords.x);
+			Game.elements.previewBall.position.x = constrainedX;
+		}
+
+		// Écouteurs pour souris
+		document.addEventListener('click', function(e) {
+			handlePointerDown(e.clientX, e.clientY);
 		});
 
+		document.addEventListener('mousemove', function(e) {
+			handlePointerMove(e.clientX, e.clientY);
+		});
+
+		// Écouteurs pour les événements tactiles
+		document.addEventListener('touchstart', function(e) {
+			e.preventDefault(); // Empêche le défilement lors du toucher
+			if (e.touches.length > 0) {
+				const touch = e.touches[0];
+				handlePointerMove(touch.clientX, touch.clientY);
+			}
+		});
+
+		document.addEventListener('touchmove', function(e) {
+			e.preventDefault(); // Empêche le défilement lors du toucher
+			if (e.touches.length > 0) {
+				const touch = e.touches[0];
+				handlePointerMove(touch.clientX, touch.clientY);
+			}
+		});
+
+		document.addEventListener('touchend', function(e) {
+			e.preventDefault(); // Empêche le défilement lors du toucher
+			// Utiliser la dernière position connue pour le tap
+			handlePointerDown(document.pointerX, document.pointerY);
+		});
+
+		// Conservez les événements de collision existants
 		Events.on(engine, 'collisionStart', function (e) {
 			for (let i = 0; i < e.pairs.length; i++) {
 				const { bodyA, bodyB } = e.pairs[i];
@@ -242,6 +336,56 @@ const Game = {
 		Game.elements.end.style.display = 'flex';
 		runner.enabled = false;
 		Game.saveHighscore();
+
+		// Récupérer le bouton Try Again
+		const tryAgainButton = document.getElementById('game-end-try-again');
+    
+		// Supprimer les anciens écouteurs potentiels pour éviter les doublons
+		tryAgainButton.removeEventListener('click', Game.tryAgain);
+		tryAgainButton.removeEventListener('touchend', Game.tryAgainTouch);
+		
+		// Ajouter les nouveaux écouteurs pour souris et tactile
+		tryAgainButton.addEventListener('click', Game.tryAgain);
+		tryAgainButton.addEventListener('touchend', Game.tryAgainTouch);
+	},
+
+		// Ajouter cette nouvelle fonction pour gérer le toucher sur Try Again
+	tryAgainTouch: function(e) {
+		e.preventDefault(); // Empêcher le comportement par défaut
+		Game.tryAgain();
+	},
+
+	// Ajouter cette fonction pour redémarrer le jeu
+	tryAgain: function() {
+		// Nettoyer le monde de Matter.js
+		Composite.clear(engine.world);
+		
+		// Réinitialiser les variables du jeu
+		Game.score = 0;
+		Game.fruitsMerged = Array.apply(null, Array(Game.fruitSizes.length)).map(() => 0);
+		Game.stateIndex = GameStates.MENU;
+		Game.elements.score.innerText = '0';
+		Game.elements.end.style.display = 'none';
+		
+		// Réactiver le moteur de physique
+		runner.enabled = true;
+		
+		// Relancer le jeu directement (sauter le menu)
+		Game.elements.ui.style.display = 'none';
+		Composite.add(engine.world, gameStatics);
+		Game.currentFruitSize = Math.floor(rand() * 5);
+		Game.setNextFruitSize();
+		Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, Game.currentFruitSize, { isStatic: true });
+		Composite.add(engine.world, Game.elements.previewBall);
+		
+		// Ajouter un petit délai avant de mettre le jeu en état prêt
+		setTimeout(() => {
+			Game.stateIndex = GameStates.READY;
+		}, 250);
+		
+		// Réinstaller les écouteurs d'événements de jeu
+		// Remarque: Si vous avez déjà configuré les écouteurs ailleurs, assurez-vous de les supprimer d'abord
+		// pour éviter les doublons
 	},
 
 	// Returns an index, or null
@@ -280,7 +424,12 @@ const Game = {
 		Game.calculateScore();
 
 		Composite.remove(engine.world, Game.elements.previewBall);
-		Game.elements.previewBall = Game.generateFruitBody(render.mouse.position.x, previewBallHeight, Game.currentFruitSize, {
+		
+		// Utilisation de la dernière position connue du pointeur
+		const coords = screenToCanvasCoords(document.pointerX, document.pointerY);
+		const constrainedX = constrainX(coords.x);
+		
+		Game.elements.previewBall = Game.generateFruitBody(constrainedX, previewBallHeight, Game.currentFruitSize, {
 			isStatic: true,
 			collisionFilter: { mask: 0x0040 }
 		});
@@ -291,8 +440,22 @@ const Game = {
 				Game.stateIndex = GameStates.READY;
 			}
 		}, 500);
+	},
+
+	setNextFruitSize: function () {
+		Game.nextFruitSize = Math.floor(rand() * 5);
+		Game.elements.nextFruitImg.src = `./assets/img/circle${Game.nextFruitSize}.png`;
+		
+		// S'assurer que currentFruitSize est défini lors du premier appel
+		if (Game.currentFruitSize === undefined) {
+			Game.currentFruitSize = Math.floor(rand() * 5);
+		}
 	}
 }
+
+// Variables pour stocker la dernière position connue du pointeur (souris ou doigt)
+document.pointerX = Game.width / 2;
+document.pointerY = previewBallHeight;
 
 const engine = Engine.create();
 const runner = Runner.create();
@@ -340,7 +503,7 @@ const menuStatics = [
 
 const wallProps = {
 	isStatic: true,
-	render: { fillStyle: '#010101' },
+	render: { fillStyle: '#F7374F' },
 	...friction,
 };
 
