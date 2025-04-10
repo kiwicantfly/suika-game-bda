@@ -342,11 +342,11 @@ const Game = {
     
 		// Supprimer les anciens écouteurs potentiels pour éviter les doublons
 		tryAgainButton.removeEventListener('click', Game.tryAgain);
-		tryAgainButton.removeEventListener('touchend', Game.tryAgainTouch);
+		tryAgainButton.removeEventListener('touchend', Game.tryAgain);
 		
 		// Ajouter les nouveaux écouteurs pour souris et tactile
 		tryAgainButton.addEventListener('click', Game.tryAgain);
-		tryAgainButton.addEventListener('touchend', Game.tryAgainTouch);
+		tryAgainButton.addEventListener('touchend', Game.tryAgain);
 	},
 
 		// Ajouter cette nouvelle fonction pour gérer le toucher sur Try Again
