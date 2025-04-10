@@ -8,6 +8,73 @@ function mulberry32(a) {
 	}
 }
 
+// Ajoutez cette fonction au début de votre code pour configurer les options d'événements tactiles
+function setupPassiveEventHandlers() {
+    // Options pour les écouteurs d'événements tactiles
+    const nonPassiveOptions = { passive: false };
+    const passiveOptions = { passive: true };
+    
+    // Fonction réutilisable pour gérer le mouvement du pointeur
+    function handlePointerMove(clientX, clientY) {
+        if (Game.stateIndex !== GameStates.READY) return;
+        if (Game.elements.previewBall === null) return;
+
+        document.pointerX = clientX;
+        document.pointerY = clientY;
+        
+        const coords = screenToCanvasCoords(clientX, clientY);
+        const constrainedX = constrainX(coords.x);
+        Game.elements.previewBall.position.x = constrainedX;
+    }
+
+    // Fonction pour gérer le toucher final/clic
+    function handlePointerDown(clientX, clientY) {
+        if (Game.stateIndex !== GameStates.READY) return;
+        
+        const coords = screenToCanvasCoords(clientX, clientY);
+        const constrainedX = constrainX(coords.x);
+        Game.addFruit(constrainedX);
+    }
+
+    // Remplacer les écouteurs de souris
+    document.addEventListener('click', function(e) {
+        handlePointerDown(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        handlePointerMove(e.clientX, e.clientY);
+    });
+
+    // Remplacer les écouteurs tactiles avec les bonnes options
+    document.addEventListener('touchstart', function(e) {
+        // Ne pas appeler preventDefault() ici
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            handlePointerMove(touch.clientX, touch.clientY);
+        }
+    }, passiveOptions);
+
+    document.addEventListener('touchmove', function(e) {
+        // Ne pas appeler preventDefault() ici
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            handlePointerMove(touch.clientX, touch.clientY);
+        }
+    }, passiveOptions);
+
+    document.addEventListener('touchend', function(e) {
+        // Ne pas appeler preventDefault() ici
+        // Utiliser la dernière position connue pour le tap
+        handlePointerDown(document.pointerX, document.pointerY);
+    }, passiveOptions);
+    
+    // Configurer le bouton Try Again de manière spéciale
+    Game.tryAgainTouch = function(e) {
+        // Ne pas utiliser preventDefault() ici
+        Game.tryAgain();
+    };
+}
+
 // Contraindre la position X dans les limites du jeu
 function constrainX(x) {
     // Limiter la valeur x entre le bord gauche et le bord droit en tenant compte du rayon du fruit pour éviter qu'il ne dépasse
@@ -195,7 +262,7 @@ const Game = {
 
 		Composite.remove(engine.world, menuStatics);
 		Composite.add(engine.world, gameStatics);
-
+	
 		Game.calculateScore();
 		Game.elements.endTitle.innerText = 'Game Over!';
 		Game.elements.ui.style.display = 'block';
@@ -204,104 +271,53 @@ const Game = {
 		Game.currentFruitSize = Math.floor(rand() * 5); // Initialiser le fruit actuel
 		Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, Game.currentFruitSize, { isStatic: true });
 		Composite.add(engine.world, Game.elements.previewBall);
-
+	
 		setTimeout(() => {
 			Game.stateIndex = GameStates.READY;
 		}, 250);
-
-		// Fonction pour gérer le clic/tap
-		function handlePointerDown(clientX, clientY) {
-			if (Game.stateIndex !== GameStates.READY) return;
-			
-			const coords = screenToCanvasCoords(clientX, clientY);
-			const constrainedX = constrainX(coords.x);
-			Game.addFruit(constrainedX);
-		}
-
-		// Fonction pour gérer le mouvement du pointeur
-		function handlePointerMove(clientX, clientY) {
-			if (Game.stateIndex !== GameStates.READY) return;
-			if (Game.elements.previewBall === null) return;
-
-			document.pointerX = clientX;
-			document.pointerY = clientY;
-			
-			const coords = screenToCanvasCoords(clientX, clientY);
-			const constrainedX = constrainX(coords.x);
-			Game.elements.previewBall.position.x = constrainedX;
-		}
-
-		// Écouteurs pour souris
-		document.addEventListener('click', function(e) {
-			handlePointerDown(e.clientX, e.clientY);
-		});
-
-		document.addEventListener('mousemove', function(e) {
-			handlePointerMove(e.clientX, e.clientY);
-		});
-
-		// Écouteurs pour les événements tactiles
-		document.addEventListener('touchstart', function(e) {
-			e.preventDefault(); // Empêche le défilement lors du toucher
-			if (e.touches.length > 0) {
-				const touch = e.touches[0];
-				handlePointerMove(touch.clientX, touch.clientY);
-			}
-		});
-
-		document.addEventListener('touchmove', function(e) {
-			e.preventDefault(); // Empêche le défilement lors du toucher
-			if (e.touches.length > 0) {
-				const touch = e.touches[0];
-				handlePointerMove(touch.clientX, touch.clientY);
-			}
-		});
-
-		document.addEventListener('touchend', function(e) {
-			e.preventDefault(); // Empêche le défilement lors du toucher
-			// Utiliser la dernière position connue pour le tap
-			handlePointerDown(document.pointerX, document.pointerY);
-		});
-
-		// Conservez les événements de collision existants
+	
+		// Configurer les gestionnaires d'événements tactiles avec les bonnes options
+		setupPassiveEventHandlers();
+	
+		// Conserver les événements de collision existants
 		Events.on(engine, 'collisionStart', function (e) {
 			for (let i = 0; i < e.pairs.length; i++) {
 				const { bodyA, bodyB } = e.pairs[i];
-
+	
 				// Skip if collision is wall
 				if (bodyA.isStatic || bodyB.isStatic) continue;
-
+	
 				const aY = bodyA.position.y + bodyA.circleRadius;
 				const bY = bodyB.position.y + bodyB.circleRadius;
-
+	
 				// Uh oh, too high!
 				if (aY < loseHeight || bY < loseHeight) {
 					Game.loseGame();
 					return;
 				}
-
+	
 				// Skip different sizes
 				if (bodyA.sizeIndex !== bodyB.sizeIndex) continue;
-
+	
 				// Skip if already popped
 				if (bodyA.popped || bodyB.popped) continue;
-
+	
 				let newSize = bodyA.sizeIndex + 1;
-
+	
 				// Go back to smallest size
 				if (bodyA.circleRadius >= Game.fruitSizes[Game.fruitSizes.length - 1].radius) {
 					newSize = 0;
 				}
-
+	
 				Game.fruitsMerged[bodyA.sizeIndex] += 1;
-
+	
 				// Therefore, circles are same size, so merge them.
 				const midPosX = (bodyA.position.x + bodyB.position.x) / 2;
 				const midPosY = (bodyA.position.y + bodyB.position.y) / 2;
-
+	
 				bodyA.popped = true;
 				bodyB.popped = true;
-
+	
 				Game.sounds[`pop${bodyA.sizeIndex}`].play();
 				Composite.remove(engine.world, [bodyA, bodyB]);
 				Composite.add(engine.world, Game.generateFruitBody(midPosX, midPosY, newSize));
@@ -336,17 +352,19 @@ const Game = {
 		Game.elements.end.style.display = 'flex';
 		runner.enabled = false;
 		Game.saveHighscore();
-
+		
 		// Récupérer le bouton Try Again
 		const tryAgainButton = document.getElementById('game-end-try-again');
-    
-		// Supprimer les anciens écouteurs potentiels pour éviter les doublons
-		tryAgainButton.removeEventListener('click', Game.tryAgain);
-		tryAgainButton.removeEventListener('touchend', Game.tryAgain);
-		
-		// Ajouter les nouveaux écouteurs pour souris et tactile
-		tryAgainButton.addEventListener('click', Game.tryAgain);
-		tryAgainButton.addEventListener('touchend', Game.tryAgain);
+
+		if (tryAgainButton) {
+			// Supprimer les anciens écouteurs
+			const newButton = tryAgainButton.cloneNode(true);
+			tryAgainButton.parentNode.replaceChild(newButton, tryAgainButton);
+			
+			// Ajouter les nouveaux écouteurs avec les bonnes options
+			newButton.addEventListener('click', Game.tryAgain);
+			newButton.addEventListener('touchend', Game.tryAgainTouch, { passive: true });
+		}
 	},
 
 		// Ajouter cette nouvelle fonction pour gérer le toucher sur Try Again
@@ -358,34 +376,34 @@ const Game = {
 	// Ajouter cette fonction pour redémarrer le jeu
 	tryAgain: function() {
 		// Nettoyer le monde de Matter.js
-		Composite.clear(engine.world);
+		const allBodies = Composite.allBodies(engine.world);
+		Composite.remove(engine.world, allBodies);
+		
+		// Réinitialiser le moteur pour éviter les problèmes de physique
+		Engine.clear(engine);
 		
 		// Réinitialiser les variables du jeu
 		Game.score = 0;
 		Game.fruitsMerged = Array.apply(null, Array(Game.fruitSizes.length)).map(() => 0);
-		Game.stateIndex = GameStates.MENU;
+		Game.stateIndex = GameStates.READY;
 		Game.elements.score.innerText = '0';
 		Game.elements.end.style.display = 'none';
+		Game.elements.ui.style.display = 'block';
 		
 		// Réactiver le moteur de physique
 		runner.enabled = true;
 		
-		// Relancer le jeu directement (sauter le menu)
-		Game.elements.ui.style.display = 'none';
+		// Ajouter les éléments statiques du jeu
 		Composite.add(engine.world, gameStatics);
+		
+		// Créer une nouvelle balle de prévisualisation
 		Game.currentFruitSize = Math.floor(rand() * 5);
 		Game.setNextFruitSize();
 		Game.elements.previewBall = Game.generateFruitBody(Game.width / 2, previewBallHeight, Game.currentFruitSize, { isStatic: true });
 		Composite.add(engine.world, Game.elements.previewBall);
 		
-		// Ajouter un petit délai avant de mettre le jeu en état prêt
-		setTimeout(() => {
-			Game.stateIndex = GameStates.READY;
-		}, 250);
-		
-		// Réinstaller les écouteurs d'événements de jeu
-		// Remarque: Si vous avez déjà configuré les écouteurs ailleurs, assurez-vous de les supprimer d'abord
-		// pour éviter les doublons
+		// Configuration des événements tactiles
+		setupPassiveEventHandlers();
 	},
 
 	// Returns an index, or null
@@ -466,7 +484,7 @@ const render = Render.create({
 		width: Game.width,
 		height: Game.height,
 		wireframes: false,
-		background: '#FFD0C7'
+		background: 'rgb(0, 0, 0, 0)'
 	}
 });
 

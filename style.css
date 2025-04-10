@@ -3,7 +3,7 @@
 :root {
     --col-bg: #FFF;/*#FFD59D;*/
     --col-bg-light: #FFD0C7;
-    --col-bg-lighter: #E69DB8;
+    --col-bg-lighter: #e67979;
     --col-primary: #FF5300;
     --col-primary-dark: #F7374F;
     --col-primary-light: #FF8800;
@@ -30,10 +30,15 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 #game-canvas {
     position: relative;
+    background-image: url(assets/img/bg-img.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: var(--col-bg-light);
 }
 
 #game-ui {
@@ -121,20 +126,20 @@ body {
 }
 
 .game-status-label {
-    color: #666;
-    font-size: min(4vw, 16px);
+    color: #333;
+    font-size: min(5vw, 20px);
     margin-left: 8px;
     margin-right: 8px;
 }
 
 #game-highscore-value, #game-score {
-    color: #333;
+    color: var(--col-bg);
     font-weight: 700;
     font-size: min(5vw, 24px);
 }
 
 #game-next-fruit {
-    width: 32px;
+    width: 40px;
     aspect-ratio: 1;
 }
 
