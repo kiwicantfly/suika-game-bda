@@ -495,7 +495,7 @@ const menuStatics = [
 	}),*/
 
 	// Add each fruit in a circle
-	...Array.apply(null, Array(Game.fruitSizes.length)).map((_, index) => {
+	/*...Array.apply(null, Array(Game.fruitSizes.length)).map((_, index) => {
 		const x = (Game.width / 2) + 192 * Math.cos((Math.PI * 2 * index)/12);
 		const y = (Game.height * 0.4) + 192 * Math.sin((Math.PI * 2 * index)/12);
 		const r = 64;
@@ -510,7 +510,7 @@ const menuStatics = [
 				},
 			},
 		});
-	}),
+	}),*/
 
 	Bodies.rectangle(Game.width / 2, Game.height * 0.75, 512, 96, {
 		isStatic: true,
