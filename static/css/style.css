@@ -7,6 +7,7 @@
     --col-primary: #FF5300;
     --col-primary-dark: #F7374F;
     --col-primary-light: #FF8800;
+    --col-secondary: #FFB200;
     --col-shadow: rgba(0, 0, 0, 0.25);
     --col-white: #fff;
 }
@@ -35,7 +36,7 @@ body {
 
 #game-canvas {
     position: relative;
-    background-image: url(assets/img/bg-img.png);
+    background-image: url(../img/bg-img.png);
     background-size: contain;
     background-repeat: no-repeat;
     background-color: var(--col-bg-light);
@@ -126,16 +127,21 @@ body {
 }
 
 .game-status-label {
-    color: #333;
+    color: var(--col-white);
     font-size: min(5vw, 20px);
     margin-left: 8px;
     margin-right: 8px;
 }
 
+svg {
+    fill: var(--col-secondary);
+    width: 22px;
+}
+
 #game-highscore-value, #game-score {
-    color: var(--col-bg);
+    color: #333;
     font-weight: 700;
-    font-size: min(5vw, 24px);
+    font-size: min(6vw, 28px);
 }
 
 #game-next-fruit {

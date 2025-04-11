@@ -136,18 +136,18 @@ const Game = {
 	},
 	cache: { highscore: 0 },
 	sounds: {
-		click: new Audio('./assets/click.mp3'),
-		pop0: new Audio('./assets/pop0.mp3'),
-		pop1: new Audio('./assets/pop1.mp3'),
-		pop2: new Audio('./assets/pop2.mp3'),
-		pop3: new Audio('./assets/pop3.mp3'),
-		pop4: new Audio('./assets/pop4.mp3'),
-		pop5: new Audio('./assets/pop5.mp3'),
-		pop6: new Audio('./assets/pop6.mp3'),
-		pop7: new Audio('./assets/pop7.mp3'),
-		pop8: new Audio('./assets/pop8.mp3'),
-		pop9: new Audio('./assets/pop9.mp3'),
-		pop10: new Audio('./assets/pop10.mp3'),
+		click: new Audio('static/sound/click.mp3'),
+		pop0: new Audio('static/sound/pop0.mp3'),
+		pop1: new Audio('static/sound/pop1.mp3'),
+		pop2: new Audio('static/sound/pop2.mp3'),
+		pop3: new Audio('static/sound/pop3.mp3'),
+		pop4: new Audio('static/sound/pop4.mp3'),
+		pop5: new Audio('static/sound/pop5.mp3'),
+		pop6: new Audio('static/sound/pop6.mp3'),
+		pop7: new Audio('static/sound/pop7.mp3'),
+		pop8: new Audio('static/sound/pop8.mp3'),
+		pop9: new Audio('static/sound/pop9.mp3'),
+		pop10: new Audio('static/sound/pop10.mp3'),
 	},
 
 	stateIndex: GameStates.MENU,
@@ -165,23 +165,23 @@ const Game = {
 	},
 
 	fruitSizes: [
-		{ radius: 24,  scoreValue: 1,  img: './assets/img/circle0.png'  },
-		{ radius: 32,  scoreValue: 3,  img: './assets/img/circle1.png'  },
-		{ radius: 40,  scoreValue: 6,  img: './assets/img/circle2.png'  },
-		{ radius: 56,  scoreValue: 10, img: './assets/img/circle3.png'  },
-		{ radius: 64,  scoreValue: 15, img: './assets/img/circle4.png'  },
-		{ radius: 72,  scoreValue: 21, img: './assets/img/circle5.png'  },
-		{ radius: 84,  scoreValue: 28, img: './assets/img/circle6.png'  },
-		{ radius: 96,  scoreValue: 36, img: './assets/img/circle7.png'  },
-		{ radius: 128, scoreValue: 45, img: './assets/img/circle8.png'  },
-		{ radius: 160, scoreValue: 55, img: './assets/img/circle9.png'  },
-		{ radius: 192, scoreValue: 66, img: './assets/img/circle10.png' },
+		{ radius: 24,  scoreValue: 1,  img: 'static/img/circle0.png'  },
+		{ radius: 32,  scoreValue: 3,  img: 'static/img/circle1.png'  },
+		{ radius: 40,  scoreValue: 6,  img: 'static/img/circle2.png'  },
+		{ radius: 56,  scoreValue: 10, img: 'static/img/circle3.png'  },
+		{ radius: 64,  scoreValue: 15, img: 'static/img/circle4.png'  },
+		{ radius: 72,  scoreValue: 21, img: 'static/img/circle5.png'  },
+		{ radius: 84,  scoreValue: 28, img: 'static/img/circle6.png'  },
+		{ radius: 96,  scoreValue: 36, img: 'static/img/circle7.png'  },
+		{ radius: 128, scoreValue: 45, img: 'static/img/circle8.png'  },
+		{ radius: 160, scoreValue: 55, img: 'static/img/circle9.png'  },
+		{ radius: 192, scoreValue: 66, img: 'static/img/circle10.png' },
 	],
 	currentFruitSize: 0,
 	nextFruitSize: 0,
 	setNextFruitSize: function () {
 		Game.nextFruitSize = Math.floor(rand() * 5);
-		Game.elements.nextFruitImg.src = `./assets/img/circle${Game.nextFruitSize}.png`;
+		Game.elements.nextFruitImg.src = `static/img/circle${Game.nextFruitSize}.png`;
 	},
 
 	showHighscore: function () {
@@ -334,7 +334,7 @@ const Game = {
 			angle: rand() * (Math.PI * 2),
 			render: {
 				sprite: {
-					texture: './assets/img/pop.png',
+					texture: 'static/img/pop.png',
 					xScale: r / 384,
 					yScale: r / 384,
 				}
@@ -462,7 +462,7 @@ const Game = {
 
 	setNextFruitSize: function () {
 		Game.nextFruitSize = Math.floor(rand() * 5);
-		Game.elements.nextFruitImg.src = `./assets/img/circle${Game.nextFruitSize}.png`;
+		Game.elements.nextFruitImg.src = `static/img/circle${Game.nextFruitSize}.png`;
 		
 		// S'assurer que currentFruitSize est défini lors du premier appel
 		if (Game.currentFruitSize === undefined) {
@@ -491,7 +491,7 @@ const render = Render.create({
 const menuStatics = [
 	/*Bodies.rectangle(Game.width / 2, Game.height * 0.4, 512, 512, {
 		isStatic: true,
-		render: { sprite: { texture: './assets/img/bg-menu.png' } },
+		render: { sprite: { texture: 'static/img/bg-menu.png' } },
 	}),*/
 
 	// Add each fruit in a circle
@@ -504,7 +504,7 @@ const menuStatics = [
 			isStatic: true,
 			render: {
 				sprite: {
-					texture: `./assets/img/circle${index}.png`,
+					texture: `static/img/circle${index}.png`,
 					xScale: r / 1024,
 					yScale: r / 1024,
 				},
@@ -515,7 +515,7 @@ const menuStatics = [
 	Bodies.rectangle(Game.width / 2, Game.height * 0.75, 512, 96, {
 		isStatic: true,
 		label: 'btn-start',
-		render: { sprite: { texture: './assets/img/btn-start.png' } },
+		render: { sprite: { texture: 'static/img/btn-start.png' } },
 	}),
 ];
 
